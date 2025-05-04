@@ -1,0 +1,67 @@
+-- Drop the foreign key constraint before dropping the table
+ALTER TABLE Employee DROP FOREIGN KEY employee_ibfk_1;
+
+-- Drop the tables if they already exist
+DROP TABLE IF EXISTS Department;
+DROP TABLE IF EXISTS Employee;
+
+-- Create the Department table again with necessary columns and primary key
+CREATE TABLE IF NOT EXISTS Department (
+    DeptID INT PRIMARY KEY AUTO_INCREMENT,   -- Unique identifier for each department
+    DeptName VARCHAR(50) NOT NULL UNIQUE     -- Department name, cannot be null and must be unique
+);
+
+-- Create the Employee table again with necessary columns and foreign key constraint
+CREATE TABLE IF NOT EXISTS Employee (
+    EmpID INT PRIMARY KEY AUTO_INCREMENT,   -- Unique identifier for each employee
+    EmpName VARCHAR(50) NOT NULL,            -- Employee name, cannot be null
+    JoinDate DATE NOT NULL,                  -- Joining date, cannot be null
+    Salary DECIMAL(10, 2) NOT NULL,          -- Salary, cannot be null
+    Address VARCHAR(100),                    -- Address of the employee
+    DeptID INT,                              -- Foreign key referencing Department table
+    FOREIGN KEY (DeptID) REFERENCES Department(DeptID)   -- Link to Department table's DeptID
+);
+
+-- Insert sample data into Department table
+INSERT IGNORE INTO Department (DeptName) VALUES
+('ADMIN'),
+('HR'),
+('IT'),
+('FINANCE');
+
+-- Insert sample data into Employee table with department reference
+INSERT IGNORE INTO Employee (EmpName, JoinDate, Salary, Address, DeptID) VALUES
+('John', '2012-05-12', 30000, '123 Main St, New York, USA, bad', 1),
+('Alice', '2012-03-22', 45000, '456 Park Ave, Chicago, USA, good', 2),
+('Bob', '2013-01-11', 35000, '789 Elm St, Los Angeles, USA, bad', 3),
+('Charlie', '2012-07-20', 50000, '101 Maple Rd, Miami, USA, bad', 4),
+('David', '2014-02-28', 55000, '202 Oak Blvd, Houston, USA, good', 4),
+('Eve', '2012-05-14', 25000, '303 Pine Dr, Boston, USA, bad', 1),
+('Anna', '2012-01-20', 27000, '404 Birch Ln, Phoenix, USA, bad', 4);
+
+-- Query to get seniority list of employees working in Department 'FINANCE'
+SELECT EmpName, JoinDate, Salary
+FROM Employee
+WHERE DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'FINANCE')
+ORDER BY JoinDate;
+
+-- Query to display details of employees who joined in 2012 and working in 'ADMIN' department
+SELECT EmpName, JoinDate, Salary
+FROM Employee
+WHERE YEAR(JoinDate) = 2012 AND DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'ADMIN');
+
+-- Query to get details of employees whose address ends with 'bad'
+SELECT EmpName, Address
+FROM Employee
+WHERE Address LIKE '%bad';
+
+-- Query to display department-wise total number of employees
+SELECT DeptName, COUNT(*) AS TotalEmployees
+FROM Employee E
+JOIN Department D ON E.DeptID = D.DeptID
+GROUP BY DeptName;
+
+-- Query to get details of the employee who has the maximum salary
+SELECT EmpName, Salary
+FROM Employee
+WHERE Salary = (SELECT MAX(Salary) FROM Employee);
