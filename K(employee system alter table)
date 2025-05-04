@@ -1,0 +1,66 @@
+CREATE DATABASE IF NOT EXISTS EmployeeDB;
+USE EmployeeDB;
+
+-- Drop Employee table first to remove the foreign key constraint
+DROP TABLE IF EXISTS Employee;
+
+-- Now drop the Department table
+DROP TABLE IF EXISTS Department;
+
+CREATE TABLE IF NOT EXISTS Department (
+    DeptID INT PRIMARY KEY,
+    DeptName VARCHAR(50) NOT NULL UNIQUE,
+    CHECK (DeptName IN ('ADMIN', 'HR', 'IT', 'FINANCE'))
+);
+
+CREATE TABLE IF NOT EXISTS Employee (
+    EmpID INT PRIMARY KEY,
+    EmpName VARCHAR(50) NOT NULL,
+    JoinDate DATE NOT NULL,
+    Salary DECIMAL(10,2) NOT NULL CHECK (Salary >= 0),
+    DeptID INT,
+    FOREIGN KEY (DeptID) REFERENCES Department(DeptID),
+    UNIQUE(EmpName),
+    CHECK (LENGTH(EmpName) = LENGTH(TRIM(BOTH ' ' FROM EmpName)))
+);
+
+INSERT IGNORE INTO Department (DeptID, DeptName) VALUES
+(1, 'ADMIN'),
+(2, 'HR'),
+(3, 'IT'),
+(4, 'FINANCE');
+
+INSERT IGNORE INTO Employee (EmpID, EmpName, JoinDate, Salary, DeptID) VALUES
+(101, 'John', '2012-05-12', 30000, 1),
+(102, 'Alice', '2012-03-22', 45000, 2),
+(103, 'Bob', '2013-01-11', 35000, 3),
+(104, 'Charlie', '2012-07-20', 50000, 4),
+(105, 'David', '2014-02-28', 55000, 4),
+(106, 'Eve', '2012-05-14', 25000, 1),
+(107, 'Anna', '2012-01-20', 27000, 4);
+
+ALTER TABLE Employee ADD COLUMN Phone VARCHAR(15) UNIQUE;
+ALTER TABLE Department MODIFY DeptName VARCHAR(100) NOT NULL;
+ALTER TABLE Employee DROP COLUMN Phone;
+
+SELECT EmpName, JoinDate, Salary
+FROM Employee
+WHERE DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'FINANCE')
+ORDER BY JoinDate;
+
+SELECT EmpName, JoinDate, Salary
+FROM Employee
+WHERE YEAR(JoinDate) = 2012 AND DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'ADMIN');
+
+SELECT EmpName, Salary
+FROM Employee
+WHERE LENGTH(EmpName) = 4;
+
+SELECT DeptName, SUM(Salary) AS TotalSalary
+FROM Employee E
+JOIN Department D ON E.DeptID = D.DeptID
+GROUP BY DeptName;
+
+SELECT EmpName, Salary
+FROM Employee
+WHERE Salary = (SELECT MAX(Salary) FROM Employee);
