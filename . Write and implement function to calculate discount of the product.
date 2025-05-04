@@ -1,0 +1,47 @@
+-- Create the database if it doesn't exist
+CREATE DATABASE IF NOT EXISTS ProductDB;
+USE ProductDB;
+
+-- Create the Product table
+CREATE TABLE IF NOT EXISTS Product (
+    ProductID INT PRIMARY KEY,
+    ProductName VARCHAR(100) NOT NULL,
+    Price DECIMAL(10,2) CHECK (Price > 0)
+);
+
+-- Insert sample data into Product table
+INSERT IGNORE INTO Product (ProductID, ProductName, Price) VALUES
+(1, 'ProductA', 4500),
+(2, 'ProductB', 8000),
+(3, 'ProductC', 12000);
+
+-- Drop the function if it exists
+DROP FUNCTION IF EXISTS CalculateDiscount;
+
+-- Create the function to calculate discounted price
+DELIMITER //
+
+CREATE FUNCTION CalculateDiscount(p_price DECIMAL(10, 2))
+RETURNS DECIMAL(10, 2)
+DETERMINISTIC
+BEGIN
+    DECLARE discounted_price DECIMAL(10, 2);
+
+    -- Apply discount based on price range
+    IF p_price < 5000 THEN
+        SET discounted_price = p_price * 0.95;  -- 5% discount
+    ELSEIF p_price BETWEEN 5000 AND 10000 THEN
+        SET discounted_price = p_price * 0.90;  -- 10% discount
+    ELSE
+        SET discounted_price = p_price * 0.85;  -- 15% discount
+    END IF;
+
+    -- Return the discounted price
+    RETURN discounted_price;
+END //
+
+DELIMITER ;
+
+-- Query to display the original price and the discounted price using the function
+SELECT ProductID, ProductName, Price AS OriginalPrice, CalculateDiscount(Price) AS DiscountedPrice
+FROM Product;
