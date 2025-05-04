@@ -1,0 +1,59 @@
+-- Create the database if it doesn't exist and use it
+CREATE DATABASE IF NOT EXISTS EmployeeDB;
+USE EmployeeDB;
+
+-- Create Department table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS Department (
+    DeptID INT PRIMARY KEY,         -- Unique identifier for the department
+    DeptName VARCHAR(50)            -- Name of the department
+);
+
+-- Create Employee table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS Employee (
+    EmpID INT PRIMARY KEY,           -- Unique identifier for the employee
+    EmpName VARCHAR(50),             -- Name of the employee
+    JoinDate DATE,                   -- Date the employee joined the company
+    Salary DECIMAL(10,2),            -- Salary of the employee
+    DeptID INT,                      -- Department ID the employee belongs to (foreign key)
+    FOREIGN KEY (DeptID) REFERENCES Department(DeptID)  -- Link to the Department table
+);
+
+-- Insert some sample data into Department table (if not already present)
+INSERT IGNORE INTO Department VALUES 
+(1, 'ADMIN'),
+(2, 'HR'),
+(3, 'IT');
+
+-- Insert some sample data into Employee table (if not already present)
+INSERT IGNORE INTO Employee VALUES
+(201, 'Tom', '2020-03-10', 20000, 1),   -- Employee 1 with Class III
+(202, 'Jerry', '2019-07-18', 50000, 2),  -- Employee 2 with Class II
+(203, 'Spike', '2021-01-05', 85000, 3);  -- Employee 3 with Class I
+
+-- Drop the procedure if it already exists (to avoid conflicts)
+DROP PROCEDURE IF EXISTS GetEmployeeClasses;
+
+-- Set delimiter to define the procedure boundaries
+DELIMITER //
+
+-- Create the stored procedure to classify and display employee classes
+CREATE PROCEDURE GetEmployeeClasses()
+BEGIN
+    -- Select all employees with their classification based on salary
+    SELECT 
+        EmpID,                             -- Employee ID
+        EmpName,                           -- Employee name
+        Salary,                            -- Employee salary
+        CASE 
+            WHEN Salary < 25000 THEN 'Class III'  -- If salary is less than 25000, classify as Class III
+            WHEN Salary BETWEEN 25000 AND 75000 THEN 'Class II' -- If salary is between 25000 and 75000, classify as Class II
+            WHEN Salary > 75000 THEN 'Class I'   -- If salary is greater than 75000, classify as Class I
+        END AS EmployeeClass                -- Display the classification as EmployeeClass
+    FROM Employee;                          -- Query all employees in the Employee table
+END //
+
+-- Reset delimiter back to default
+DELIMITER ;
+
+-- Call the procedure to display all employee classes
+CALL GetEmployeeClasses();
