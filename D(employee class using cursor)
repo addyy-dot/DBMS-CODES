@@ -1,0 +1,90 @@
+-- Create the database EmployeeDB if it doesn't exist
+CREATE DATABASE IF NOT EXISTS EmployeeDB;
+USE EmployeeDB;
+
+-- Create the Department table if it doesn't exist
+CREATE TABLE IF NOT EXISTS Department (
+    DeptID INT PRIMARY KEY,              -- Primary key for Department table
+    DeptName VARCHAR(50)                 -- Department name field
+);
+
+-- Create the Employee table if it doesn't exist
+CREATE TABLE IF NOT EXISTS Employee (
+    EmpID INT PRIMARY KEY,                -- Primary key for Employee table
+    EmpName VARCHAR(50),                  -- Employee's name
+    JoinDate DATE,                        -- Employee's join date
+    Salary DECIMAL(10,2),                 -- Employee's salary
+    DeptID INT,                           -- Department ID that references Department table
+    FOREIGN KEY (DeptID) REFERENCES Department(DeptID) -- Foreign key to link with Department table
+);
+
+-- Insert sample data into the Department table
+INSERT IGNORE INTO Department (DeptID, DeptName) VALUES 
+(1, 'ADMIN'),
+(2, 'HR'),
+(3, 'IT');
+
+-- Insert sample data into the Employee table
+INSERT IGNORE INTO Employee (EmpID, EmpName, JoinDate, Salary, DeptID) VALUES
+(201, 'Tom', '2020-03-10', 20000, 1),
+(202, 'Jerry', '2019-07-18', 50000, 2),
+(203, 'Spike', '2021-01-05', 85000, 3);
+
+-- Drop the procedure GetEmployeeClassesUsingCursor if it already exists
+DROP PROCEDURE IF EXISTS GetEmployeeClassesUsingCursor;
+
+-- Change delimiter for stored procedure definition
+DELIMITER //
+
+-- Create a stored procedure to classify employees based on salary using a cursor
+CREATE PROCEDURE GetEmployeeClassesUsingCursor()
+BEGIN
+    -- Declare variables to store employee details
+    DECLARE emp_id INT;                -- Employee ID
+    DECLARE emp_name VARCHAR(50);      -- Employee name
+    DECLARE emp_salary DECIMAL(10,2); -- Employee salary
+    DECLARE emp_class VARCHAR(20);    -- Employee class (Class I, II, III)
+    DECLARE done INT DEFAULT 0;       -- Flag to indicate when to stop the cursor loop
+    
+    -- Declare the cursor to select EmployeeID, EmployeeName, and Salary from the Employee table
+    DECLARE emp_cursor CURSOR FOR 
+        SELECT EmpID, EmpName, Salary FROM Employee;
+    
+    -- Declare a handler to set 'done' to 1 when the cursor reaches the end of the result set
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
+    
+    -- Open the cursor to start fetching data
+    OPEN emp_cursor;
+    
+    -- Start a loop to fetch each employee's details
+    read_loop: LOOP
+        -- Fetch the employee details (EmpID, EmpName, and Salary)
+        FETCH emp_cursor INTO emp_id, emp_name, emp_salary;
+        
+        -- If no more data is available, exit the loop
+        IF done THEN
+            LEAVE read_loop;
+        END IF;
+        
+        -- Classify employee based on their salary
+        IF emp_salary < 25000 THEN
+            SET emp_class = 'Class III';   -- Salary less than 25000 -> Class III
+        ELSEIF emp_salary BETWEEN 25000 AND 75000 THEN
+            SET emp_class = 'Class II';   -- Salary between 25000 and 75000 -> Class II
+        ELSE
+            SET emp_class = 'Class I';    -- Salary greater than 75000 -> Class I
+        END IF;
+        
+        -- Output the employee's name, salary, and their classified class
+        SELECT emp_name AS EmployeeName, emp_salary AS Salary, emp_class AS EmployeeClass;
+    END LOOP;
+    
+    -- Close the cursor after processing all employees
+    CLOSE emp_cursor;
+END //
+
+-- Restore the delimiter back to default
+DELIMITER ;
+
+-- Call the stored procedure to execute and display employee classes
+CALL GetEmployeeClassesUsingCursor();
