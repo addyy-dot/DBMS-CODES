@@ -1,0 +1,51 @@
+-- Create database if not exists
+CREATE DATABASE IF NOT EXISTS EmployeeDB;
+USE EmployeeDB;
+
+-- Drop the Employee table if it exists and create a new one
+DROP TABLE IF EXISTS Employee;
+CREATE TABLE IF NOT EXISTS Employee (
+    EmpID INT PRIMARY KEY,          -- Employee ID (Primary key)
+    EmpName VARCHAR(50),            -- Employee Name
+    Salary DECIMAL(10, 2)           -- Employee Salary
+);
+
+-- Insert some employee data into the Employee table
+INSERT IGNORE INTO Employee (EmpID, EmpName, Salary) VALUES
+(1, 'Tom', 20000),               -- Employee 1
+(2, 'Jerry', 30000),             -- Employee 2
+(3, 'Spike', 80000),             -- Employee 3
+(4, 'Toby', 100000);             -- Employee 4
+
+-- Drop the function GetEmployeeClass if it already exists
+DROP FUNCTION IF EXISTS GetEmployeeClass;
+
+-- Change delimiter to define function
+DELIMITER //
+
+-- Create the function to determine the class of the employee based on salary
+CREATE FUNCTION GetEmployeeClass(emp_salary DECIMAL(10, 2))
+RETURNS VARCHAR(10)               -- Function returns a string (Class)
+DETERMINISTIC                     -- The function returns the same result for the same input
+BEGIN
+    DECLARE emp_class VARCHAR(10);  -- Variable to hold the employee class
+
+    -- Classify based on salary ranges
+    IF emp_salary < 25000 THEN
+        SET emp_class = 'Class III';   -- Class III for salary less than 25000
+    ELSEIF emp_salary BETWEEN 25000 AND 75000 THEN
+        SET emp_class = 'Class II';    -- Class II for salary between 25000 and 75000
+    ELSE
+        SET emp_class = 'Class I';     -- Class I for salary greater than 75000
+    END IF;
+
+    -- Return the class
+    RETURN emp_class;
+END //
+
+-- Restore the delimiter to the default semicolon
+DELIMITER ;
+
+-- Select employee details and calculate the class using the function
+SELECT EmpName, Salary, GetEmployeeClass(Salary) AS EmployeeClass
+FROM Employee;
