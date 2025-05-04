@@ -1,66 +1,73 @@
-CREATE DATABASE IF NOT EXISTS EmployeeDB;
-USE EmployeeDB;
+DROP DATABASE IF EXISTS companyDB;
+CREATE DATABASE companyDB;
+USE companyDB;
 
--- Drop Employee table first to remove the foreign key constraint
-DROP TABLE IF EXISTS Employee;
-
--- Now drop the Department table
-DROP TABLE IF EXISTS Department;
-
-CREATE TABLE IF NOT EXISTS Department (
-    DeptID INT PRIMARY KEY,
-    DeptName VARCHAR(50) NOT NULL UNIQUE,
-    CHECK (DeptName IN ('ADMIN', 'HR', 'IT', 'FINANCE'))
+-- Create Department Table
+CREATE TABLE department (
+    dept_id INT PRIMARY KEY,
+    dept_name VARCHAR(50)
 );
 
-CREATE TABLE IF NOT EXISTS Employee (
-    EmpID INT PRIMARY KEY,
-    EmpName VARCHAR(50) NOT NULL,
-    JoinDate DATE NOT NULL,
-    Salary DECIMAL(10,2) NOT NULL CHECK (Salary >= 0),
-    DeptID INT,
-    FOREIGN KEY (DeptID) REFERENCES Department(DeptID),
-    UNIQUE(EmpName),
-    CHECK (LENGTH(EmpName) = LENGTH(TRIM(BOTH ' ' FROM EmpName)))
+-- Create Employee Table
+CREATE TABLE employee (
+    emp_id INT AUTO_INCREMENT PRIMARY KEY,
+    emp_name VARCHAR(100),
+    salary DECIMAL(10,2),
+    dept_id INT,
+    FOREIGN KEY (dept_id) REFERENCES department(dept_id)
 );
 
-INSERT IGNORE INTO Department (DeptID, DeptName) VALUES
-(1, 'ADMIN'),
-(2, 'HR'),
-(3, 'IT'),
-(4, 'FINANCE');
+-- Insert sample data
+INSERT INTO department VALUES
+(1, 'HR'),
+(2, 'IT'),
+(3, 'Finance');
 
-INSERT IGNORE INTO Employee (EmpID, EmpName, JoinDate, Salary, DeptID) VALUES
-(101, 'John', '2012-05-12', 30000, 1),
-(102, 'Alice', '2012-03-22', 45000, 2),
-(103, 'Bob', '2013-01-11', 35000, 3),
-(104, 'Charlie', '2012-07-20', 50000, 4),
-(105, 'David', '2014-02-28', 55000, 4),
-(106, 'Eve', '2012-05-14', 25000, 1),
-(107, 'Anna', '2012-01-20', 27000, 4);
+INSERT INTO employee (emp_name, salary, dept_id) VALUES
+('John', 40000, 1),
+('Alice', 60000, 2),
+('Bob', 75000, 2),
+('Emma', 85000, 3),
+('Ryan', 30000, 1);
 
-ALTER TABLE Employee ADD COLUMN Phone VARCHAR(15) UNIQUE;
-ALTER TABLE Department MODIFY DeptName VARCHAR(100) NOT NULL;
-ALTER TABLE Employee DROP COLUMN Phone;
+-- 1. Simple view: employee name and salary
+CREATE OR REPLACE VIEW view_simple AS
+SELECT emp_name, salary FROM employee;
 
-SELECT EmpName, JoinDate, Salary
-FROM Employee
-WHERE DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'FINANCE')
-ORDER BY JoinDate;
+-- 2. Complex view: join with department
+CREATE OR REPLACE VIEW view_join AS
+SELECT e.emp_name, e.salary, d.dept_name
+FROM employee e
+JOIN department d ON e.dept_id = d.dept_id;
 
-SELECT EmpName, JoinDate, Salary
-FROM Employee
-WHERE YEAR(JoinDate) = 2012 AND DeptID = (SELECT DeptID FROM Department WHERE DeptName = 'ADMIN');
+-- 3. View using aggregate: total salary by department
+CREATE OR REPLACE VIEW view_aggregate AS
+SELECT d.dept_name, SUM(e.salary) AS total_salary
+FROM employee e
+JOIN department d ON e.dept_id = d.dept_id
+GROUP BY d.dept_name;
 
-SELECT EmpName, Salary
-FROM Employee
-WHERE LENGTH(EmpName) = 4;
+-- 4. View using nested query: employees with salary above average
+CREATE OR REPLACE VIEW view_nested AS
+SELECT emp_id, emp_name, salary
+FROM employee
+WHERE salary > (SELECT AVG(salary) FROM employee);
 
-SELECT DeptName, SUM(Salary) AS TotalSalary
-FROM Employee E
-JOIN Department D ON E.DeptID = D.DeptID
-GROUP BY DeptName;
+-- 5. View with CHECK OPTION (only HR employees)
+CREATE OR REPLACE VIEW view_hr_only AS
+SELECT * FROM employee
+WHERE dept_id = 1
+WITH CHECK OPTION;
 
-SELECT EmpName, Salary
-FROM Employee
-WHERE Salary = (SELECT MAX(Salary) FROM Employee);
+-- ✅ Try updating through view_hr_only (will work)
+UPDATE view_hr_only SET salary = 45000 WHERE emp_name = 'Ryan';
+
+-- ❌ Try updating Ryan's dept_id to 2 (will fail due to CHECK OPTION)
+-- UPDATE view_hr_only SET dept_id = 2 WHERE emp_name = 'Ryan';
+
+-- View all results
+SELECT * FROM view_simple;
+SELECT * FROM view_join;
+SELECT * FROM view_aggregate;
+SELECT * FROM view_nested;
+SELECT * FROM view_hr_only;
